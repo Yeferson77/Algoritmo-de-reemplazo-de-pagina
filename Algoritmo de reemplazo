@@ -1,0 +1,330 @@
+import numpy as np
+import os
+import tkinter as tk
+ ##presentado por yeferson gomez muñoz y jaden otalvaro giraldo
+ 
+ 
+ 
+
+def dibujar_lista_matriz(lista, matriz,name,page_faults):
+    # Asegurarse de que el número de columnas de la lista y la matriz coinciden
+    if len(lista) != len(matriz[0]):
+        raise ValueError("La lista y la matriz deben tener el mismo número de columnas")
+    
+    # Crear la ventana
+    ventana = tk.Tk()
+    ventana.title("Visualizacion de algoritmo")
+
+    # Configurar el tamaño del grid
+    num_columnas = len(lista)
+    num_filas = len(matriz)
+    
+    etiqueta_algoritmo = tk.Label(ventana, text=name, font=("Helvetica", 12))
+    etiqueta_algoritmo.grid(row=0, column=0, columnspan=num_columnas, pady=10)
+
+    # Dibujar la lista en la primera fila con fondo azul claro
+    for i in range(num_columnas):
+        celda_lista = tk.Label(ventana, text=str(lista[i]), relief="solid", borderwidth=1, width=5, height=2, bg="lightblue")
+        celda_lista.grid(row=50, column=i, padx=5, pady=5)
+    
+   
+   
+
+    # Dibujar la matriz en las filas siguientes
+    for i in range(num_filas):
+        for j in range(num_columnas):
+            # Comprobar si es diferente al valor de la fila anterior en la misma columna
+            if j==0 and i==0: #pintar en primer fallo de rojo
+                celda_matriz = tk.Label(ventana, text=str(matriz[0][j]), relief="solid", borderwidth=1, width=5, height=2, bg="red")
+                
+            elif j>0 and (matriz[i][j] != matriz[i][j-1]):
+                
+                celda_matriz = tk.Label(ventana, text=str(matriz[i][j]), relief="solid", borderwidth=1, width=5, height=2, bg="red")
+            else:
+                celda_matriz = tk.Label(ventana, text=str(matriz[i][j]), relief="solid", borderwidth=1, width=5, height=2)
+            
+            celda_matriz.grid(row=50 + i+1, column=j, padx=5, pady=5)
+            
+            #dibuja los valores que van saliendo
+            
+            aux=j   
+            if j>-1 and (matriz[i][j] != matriz[i][j-1]):
+                if j==0:
+                    aux=aux+1
+                celda_matriz = tk.Label(ventana, text=str(matriz[i][aux-1]), relief="solid", borderwidth=1, width=5, height=2, bg="green")
+                celda_matriz.grid(row=70 + num_filas, column=j, padx=5, pady=5)
+           
+            
+            
+    #DIBUJAR TEXTO DE CANTIDAD DE FALLOS       
+    etiqueta_fifo = tk.Label(ventana, text=f"Total de fallos de Memoria: {page_faults}", font=("Helvetica", 12))
+    etiqueta_fifo.grid(row=90 + num_filas + 2, column=0, columnspan=num_columnas, pady=10)
+
+    # Ejecutar el loop de la ventana
+    ventana.mainloop()
+
+
+
+
+
+ 
+def limpiar_consola():
+    # Limpiar consola para diferentes sistemas operativos
+    if os.name == 'nt':  # Para Windows
+        os.system('cls')
+
+def seleccionar_nueva_opcion():
+    input("Presione Enter para seleccionar otra opción...")
+    limpiar_consola()   
+
+def crear_lista(lista_numeros):
+    num = 1
+    while -1 < num < 10:
+        num = int(input('Número para añadir a la lista, si desea terminar de agregar escribe algún número fuera del rango >=10): '))
+        if -1 < num < 10:
+            lista_numeros.append(num)
+    return lista_numeros
+
+def calcular_fifo(lista_numeros, frame):
+    diagrama = np.full((frame, len(lista_numeros)), -1, dtype=int)  # Inicializado con -1 para simbolizar frames vacíos
+    frame_index = 0
+    page_faults = 0
+    frames = []
+
+    for i in range(len(lista_numeros)):
+        current_page = lista_numeros[i]
+        
+        if current_page not in frames:
+            if len(frames) < frame:
+                frames.append(current_page)
+            else:
+                frames[frame_index] = current_page
+                frame_index = (frame_index + 1) % frame  # Ciclo circular para reemplazo FIFO
+                
+            page_faults += 1
+
+        for j in range(len(frames)):
+            diagrama[j][i] = frames[j]
+
+    return diagrama, page_faults
+
+def calcular_LRU(lista_numeros, frame):
+    diagrama = np.full((frame, len(lista_numeros)), -1, dtype=int)  # Inicializado con -1 para simbolizar frames vacíos
+    page_faults = frame
+    
+    #agregar los primeros datos
+    contador_filas_llenadas=0
+    contador_avance=0
+    diagrama[0][0]=lista_numeros[contador_avance]
+    contador_filas_llenadas+=1
+    contador_avance+=1
+
+    while contador_filas_llenadas<frame:
+        reemplazo_sum=0
+        reemplazo=0
+        #lista de valores actuales a reemplazar
+        lista_val_reemplazar=[]
+        for i in range(frame):
+            lista_val_reemplazar.append(int(diagrama[i][contador_avance-1]))
+
+        for i in range(frame):
+            if lista_val_reemplazar[i]!=lista_numeros[contador_avance]:
+                reemplazo_sum=reemplazo_sum+1
+            else:
+                reemplazo_sum= reemplazo_sum
+        
+        if reemplazo_sum==frame:
+            reemplazo=1
+        else:
+            reemplazo=0
+        
+        if reemplazo==1:
+            #copia de valores
+            for i in range(frame):
+                diagrama[i][contador_avance]= diagrama[i][contador_avance-1]
+            
+            diagrama[contador_filas_llenadas][contador_avance]=lista_numeros[contador_avance]
+            contador_avance+=1
+            contador_filas_llenadas+=1
+
+        else:
+            for i in range(frame):
+                diagrama[i][contador_avance]= diagrama[i][contador_avance-1]
+            contador_avance+=1
+            
+
+    
+
+
+    
+        
+    indice = contador_avance
+    #----------------------------------------------------------------
+    while indice<len(lista_numeros):
+        #lista de valores actuales a reemplazar
+        lista_val_reemplazar=[]
+        for i in range(frame):
+            lista_val_reemplazar.append(int(diagrama[i][indice-1]))
+        
+        
+        #variable que me dice si debo reemplazar, 1-si  0-no
+        reemplazo_sum=0
+        reemplazo=0
+        for i in range(frame):
+            if lista_val_reemplazar[i]!=lista_numeros[indice]:
+                reemplazo_sum=reemplazo_sum+1
+            else:
+                reemplazo_sum= reemplazo_sum
+        
+        if reemplazo_sum==frame:
+            reemplazo=1
+        else:
+            reemplazo=0
+        #algoritmo de reemplazo
+        
+        if reemplazo ==1:
+            page_faults=page_faults+1
+            lista_pos_num_candidatos=[]
+            pos_num_menos_usado=0
+            pos_aux=0
+            for i in range(frame):
+                for k in range(indice):
+                    if (lista_val_reemplazar[i]==lista_numeros[k]):
+                        pos_aux=k
+                lista_pos_num_candidatos.append(pos_aux)
+            
+            pos_num_menos_usado=min(lista_pos_num_candidatos)
+            print(pos_num_menos_usado)
+            
+            #copia de valores
+            for i in range(frame):
+                diagrama[i][indice]= diagrama[i][indice-1]
+                
+            #busqueda de fila de numero a reemplazar
+            pos_num_fila=0
+            for i in range(frame):
+                if lista_val_reemplazar[i]==lista_numeros[pos_num_menos_usado]:
+                    pos_num_fila=i
+            
+            #se reemplaza en la fila correspondiente
+            diagrama[pos_num_fila][indice]=lista_numeros[indice]
+        
+        else:
+            #copia de valores
+            for i in range(frame):
+                diagrama[i][indice]= diagrama[i][indice-1]
+        
+        indice=indice+1
+        
+            
+        
+                
+        
+        
+        
+    
+    
+    
+    
+    return diagrama, page_faults
+    
+    
+
+def calcular_ffm(lista_numeros, frame):
+    diagrama = np.full((frame, len(lista_numeros)), -1, dtype=int)
+    page_faults = 0
+    frames = []
+    ref_bits = [0] * frame  # Inicializamos los bits de referencia a 0
+    frame_index = 0
+
+    for i in range(len(lista_numeros)):
+        current_page = lista_numeros[i]
+
+        if current_page in frames:
+            # Si la página ya está en los frames, activamos su bit de referencia
+            page_index = frames.index(current_page)
+            ref_bits[page_index] = 1
+        else:
+            page_faults += 1
+
+            while True:
+                # Reemplazo mejorado: buscamos un frame con bit de referencia en 0
+                if ref_bits[frame_index] == 0:
+                    if len(frames) < frame:
+                        frames.append(current_page)
+                    else:
+                        frames[frame_index] = current_page
+                    
+                    # Reiniciar bit de referencia para la nueva página
+                    ref_bits[frame_index] = 1
+                    frame_index = (frame_index + 1) % frame
+                    break
+                else:
+                    # Si el bit es 1, lo ponemos en 0 y avanzamos al siguiente frame
+                    ref_bits[frame_index] = 0
+                    frame_index = (frame_index + 1) % frame
+
+        # Actualizamos el diagrama con el estado de los frames en esta iteración
+        for j in range(len(frames)):
+            diagrama[j][i] = frames[j]
+
+    return diagrama, page_faults
+
+# Programa principal
+lista_numeros = []
+frame = 3 #valor por defecto
+opcion = 1
+
+while 0 < opcion < 10:
+    print("---------------MENU----------------------")
+    print("1- Agregar lista de páginas")
+    print("2- Ver lista de páginas")
+    print("3- Editar número de frames (por defecto es 3)")
+    print("4- Calcular por FIFO")
+    print("5- Calcular por FFM (FIFO Mejorado)")
+    print("6- Calcular por LRU")
+    print("7- Terminar")
+
+    opcion = int(input('Elija una opción: '))
+
+    if opcion == 1:
+        lista_numeros = crear_lista(lista_numeros)
+        print("Lista numeros:", lista_numeros)
+        seleccionar_nueva_opcion()
+
+    elif opcion == 2:
+        if len(lista_numeros) == 0:
+            print("Aún no se ha creado la lista")
+        else:
+            print("Lista numeros:", lista_numeros)
+        seleccionar_nueva_opcion()
+
+    elif opcion == 3:
+        frame = int(input('Nuevo número de frames: '))
+        print(f"Frames ajustados a {frame}")
+        seleccionar_nueva_opcion()
+
+    elif opcion == 4:
+        print(lista_numeros)
+        name="ALGORITMO DE REEMPLAZO FIFO"
+        diagrama, page_faults = calcular_fifo(lista_numeros, frame)
+        dibujar_lista_matriz(lista_numeros, diagrama,name,page_faults)
+        seleccionar_nueva_opcion()
+
+    elif opcion == 5:
+        print(lista_numeros)
+        name="ALGORITMO DE REEMPLAZO FIFO MEJORADO"
+        diagrama, page_faults = calcular_ffm(lista_numeros, frame)
+        dibujar_lista_matriz(lista_numeros, diagrama,name,page_faults)
+        seleccionar_nueva_opcion()
+        
+    elif opcion == 6:
+        print(lista_numeros)
+        name="ALGORITMO DE REEMPLAZO LRU"
+        diagrama, page_faults = calcular_LRU(lista_numeros, frame)
+        dibujar_lista_matriz(lista_numeros, diagrama,name,page_faults)
+        seleccionar_nueva_opcion()
+
+    elif opcion == 7:
+        print("Terminando el programa...")
+        break
